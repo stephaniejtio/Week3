@@ -97,3 +97,66 @@ nyse_ratio <- nyse_tbl |>
   arrange(fyear, desc(at))
 
 nyse_ratio |> summarise(AvgRev = mean(revt,  na.rm = TRUE))
+
+
+#median 
+nyse_ratio |> summarise(MedianAssets = median(npm, na.rm = TRUE))
+
+#The maximum value of debt to equity ratio (de)
+nyse_ratio |> summarise(MaxDebtEquity = max(de, na.rm = TRUE))
+
+
+
+
+
+
+
+
+
+
+
+
+nyse_ratio |> group_by(fyear) |> 
+  summarise(AvgRev = mean(revt, na.rm = TRUE))
+
+
+
+nyse_ratio |> filter(fyear =="2012") |> 
+  mutate(ind_cd = str_extract(naicsh, "^.{2}"))|>
+  group_by(ind_cd) |> 
+  summarise(AvgNPM = mean(npm, na.rm = TRUE)) |>
+  arrange(desc(AvgNPM))
+
+
+
+nyse_ratio |>
+  summarise(across(
+    .cols = c(revt,ni, at, dltt, teq, npm, ato, de), 
+    .fns = list(Mean = mean, Median = median, SD = sd), na.rm = TRUE, 
+    .names = "{col}_{fn}"
+  ))
+
+
+
+Modes <- function(x, na.rm = FALSE) {
+  if(na.rm){ #if na.rm is TRUE, remove NA values from input x
+    x = x[!is.na(x)]
+  }
+  ux <- unique(x)
+  tab <- tabulate(match(x, ux))
+  ux[tab == max(tab)]
+}
+
+nyse_ratio |>
+  summarise(across(
+    .cols = c(revt, at, npm, ato, de), 
+    .fns = list(Mean = mean, Median = median, 
+                Mode = Modes, SD = sd), na.rm = TRUE, 
+    .names = "{col}_{fn}"
+  )) |> 
+  pivot_longer(everything(), names_sep = "_", 
+               names_to = c( "variable", ".value"))
+
+
+#Managing Dates
+#ymd("2000 Feb 24th")
