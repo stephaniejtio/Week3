@@ -36,14 +36,14 @@ view(activities_wider)
 
 
 
-library(RPostgres)
-wrds <- dbConnect(Postgres(),
-                  host='wrds-pgdata.wharton.upenn.edu',
-                  port=9737,
-                  dbname='wrds',
-                  sslmode='require',
-                  user='stephaniejtio',
-                  password='Stefanitio88')
+  library(RPostgres)
+  wrds <- dbConnect(Postgres(),
+                    host='wrds-pgdata.wharton.upenn.edu',
+                    port=9737,
+                    dbname='wrds',
+                    sslmode='require',
+                    user='stephaniejtio',
+                    password='Stefanitio88')
 
 
 res <- dbSendQuery(wrds, "select gvkey,conm,fyear,revt,ni,at,dltt,teq 
@@ -160,3 +160,103 @@ nyse_ratio |>
 
 #Managing Dates
 #ymd("2000 Feb 24th")
+
+
+#CHALLENGE TASK - 4 Sept 
+
+# Load necessary libraries
+library(tidyr)
+library(dplyr)
+
+#read csv 
+datax <- read.csv("/Users/stio/week 3/RR20221230-001-SSDailyYTD.csv")
+datax
+
+#change col names to sec name and sec code
+colnames(datax)[1:2] <- c("security_name", "security_code")
+
+# Perform the gather operation
+df_long <- datax %>%
+  gather(key = "trade_date", value = "value", -security_name, -security_code)
+
+# Split the 'value' column into 'short_volume' and 'short_percent'
+df_long <- df_long %>%
+  mutate(
+    short_volume = as.numeric(sub(" .*", "", value)),  # Take everything before the space as short_volume
+    short_percent = as.numeric(sub(".* ", "", value))  # Take everything after the space as short_percent
+  )
+
+
+
+# Drop the original 'value' column
+df_long <- df_long %>%
+  select(-value)
+
+# Convert the 'short_volume' and 'short_percent' columns to numeric types
+df_long <- df_long %>%
+  mutate(
+    short_volume = as.numeric(short_volume),
+    short_percent = as.numeric(short_percent)
+  )
+
+
+# Drop rows with NA in short_volume or short_percent
+df_long <- df_long %>%
+  drop_na(short_volume, short_percent)
+
+# Display the first few rows of the cleaned and tidy data
+print(head(df_long, 10))
+
+df_long <- df_long[-1, ]
+
+
+# Rename columns if needed
+colnames(df_long) <- c("security_name", "security_code", "trade_date", "short_volume", "short_percent")
+
+df_long$trade_date <- dmy(gsub("X", "", df_long$trade_date))
+
+# Convert short_volume and short_percent to numeric values (removing NA)
+df_long$short_volume <- as.numeric(df_long$short_volume)
+df_long$short_percent <- as.numeric(df_long$short_percent)
+
+# Filter out rows with NA in short_volume or short_percent
+df_long <- df_long %>% filter(!is.na(short_volume) & !is.na(short_percent))
+
+# ##################################################################################
+
+
+# Load necessary libraries
+library(tidyr)
+library(dplyr)
+library(lubridate)
+
+
+#read csv 
+df <- read.csv("/Users/stio/week 3/RR20221230-001-SSDailyYTD.csv", skip = 1, header = TRUE)
+
+# Convert wide format data into long format
+df_long <- df %>%
+  gather(key = "trade_date", value = "value", -security_name, -security_code)
+
+# Separate the 'value' column into 'short_volume' and 'short_percent'
+df_long <- df_long %>%
+  separate(value, into = c("short_volume", "short_percent"), sep = " ", fill = "right")
+
+# Convert 'short_volume' and 'short_percent' to numeric types
+df_long <- df_long %>%
+  mutate(
+    short_volume = as.numeric(short_volume),
+    short_percent = as.numeric(short_percent)
+  )
+
+# Convert 'trade_date' to a proper date format
+df_long <- df_long %>%
+  mutate(trade_date = dmy(gsub("X", "", trade_date)))
+
+# Filter out rows with NA in short_volume or short_percent
+df_tidy <- df_long %>%
+  drop_na(short_volume, short_percent)
+
+# Sort by the first column (security_name)
+df_tidy <- df_tidy %>%
+  arrange(security_name)
